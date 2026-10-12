@@ -1,0 +1,217 @@
+/* The system, kept from the page this catalog was ported from.
+   Module 4 px: every length is a multiple of it, but for 1 and 2 px lines.
+   Type: 13, 15 and 20 px, in the weights 400 and 600. Colours: the
+   palette of palette.js. State has one rule: what is chosen is filled
+   with the green; what cannot be pressed is drawn in the grey. Every
+   target is at least 44 by 44 px. Rules, not boxes: no cards, no shadows;
+   the zones' rules are drawn as lines inside them, so they move no
+   content. The page uses the system sans and fetches no font. */
+
+:root {
+  --paper: #ffffff;
+  --ink: #26221e;
+  --grey: #685f56;
+  --rule: #e5e0da;
+  --view: #f4f2ef;
+  --green: #2e6b3c;
+  --red: #b3261e;
+  --font: system-ui, -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --row: 44px;         /* every target at least this tall and wide */
+  --gap: 8px;
+  --edge: 16px;        /* a zone's margin */
+  --catalog: 320px;
+  --info: 360px;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { margin: 0; }
+
+body {
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 20px;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+button, input { font: inherit; color: inherit; }
+a { color: inherit; }
+
+:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+/* A browser that cannot run the modules sees this line instead of an empty
+   page. While the modules load it stays hidden; main.js takes it away. */
+.no-modules { margin: 0; padding: 24px 16px; font-size: 20px; line-height: 28px; }
+.js .no-modules { display: none; }
+
+.page-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  column-gap: 16px;
+  padding: 8px var(--edge);
+  border-bottom: 1px solid var(--rule);
+}
+.page-header h1 { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; }
+.purpose { margin: 0; font-size: 13px; line-height: 16px; color: var(--grey); }
+
+.app { display: grid; }
+
+/* The catalog: the field, the count, the rows. */
+
+.catalog { display: flex; flex-direction: column; gap: 4px; padding: var(--edge); }
+.search-label { font-weight: 600; }
+.search {
+  width: 100%;
+  min-height: var(--row);
+  padding: 0 12px;
+  border: 1px solid var(--grey);
+  background: var(--paper);
+}
+.count, .keys-hint, .none { margin: 0; font-size: 13px; line-height: 16px; color: var(--grey); }
+.none { color: var(--ink); padding: 8px 0; }
+.bonds { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; }
+.bonds li + li { border-top: 1px solid var(--rule); }
+
+.bond {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 64px;
+  padding: 8px;
+  text-decoration: none;
+}
+.bond:hover .bond-name { text-decoration: underline; }
+/* What is chosen is filled with the green; the drawing keeps its paper. */
+.bond[aria-current="page"] { background: var(--green); color: var(--paper); }
+.bond[aria-current="page"] .bond-period { color: var(--paper); }
+.thumb { flex: none; display: block; background: var(--paper); box-shadow: 0 0 0 4px var(--paper); }
+.bond-words { display: flex; flex-direction: column; min-width: 0; }
+.bond-name { font-weight: 600; }
+.bond-period { font-size: 13px; line-height: 16px; color: var(--grey); }
+
+/* The 3D view: the stage, its hint, its keys under it. */
+
+.view { position: relative; display: flex; flex-direction: column; background: var(--view); min-height: 0; }
+.view-stage { position: relative; flex: 1 1 auto; min-height: 0; }
+.view-stage canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; touch-action: none; }
+.view-stage canvas:focus-visible { outline: 2px solid var(--green); outline-offset: -4px; }
+.view-hint {
+  position: absolute;
+  top: 12px;
+  left: var(--edge);
+  margin: 0;
+  font-size: 13px;
+  line-height: 16px;
+  color: var(--grey);
+  pointer-events: none;
+}
+.view-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--gap);
+  padding: 8px var(--edge) 12px;
+}
+.view-keys { display: flex; gap: var(--gap); }
+
+.key {
+  min-width: var(--row);
+  min-height: var(--row);
+  padding: 0 12px;
+  border: 1px solid var(--grey);
+  background: var(--paper);
+  cursor: pointer;
+}
+.view-key { min-width: 72px; }
+.key[aria-pressed="true"] { border-color: var(--green); background: var(--green); color: var(--paper); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; list-style: none; font-size: 13px; line-height: 16px; }
+.legend-item { display: flex; align-items: center; gap: 4px; }
+.chip { display: inline-block; width: 12px; height: 12px; border: 1px solid var(--ink); }
+
+/* Without WebGL: one line in the zone, which then takes only its room. */
+.view.no-webgl { align-items: center; justify-content: center; min-height: 120px; }
+.view-empty { margin: 0; padding: 24px 16px; max-width: 32em; text-align: center; }
+
+/* The background: the facts, the map, the examples, the sources. */
+
+.info { display: flex; flex-direction: column; gap: 8px; padding: var(--edge); }
+.info-title { margin: 0; font-size: 20px; line-height: 28px; font-weight: 600; }
+.info-heading { margin: 8px 0 0; font-size: 13px; line-height: 16px; font-weight: 600; color: var(--grey); }
+.facts { margin: 0; }
+.facts dt { margin-top: 8px; font-size: 13px; line-height: 16px; font-weight: 600; color: var(--grey); }
+.facts dd { margin: 0; }
+.claim { display: block; }
+.cite { display: block; font-size: 13px; line-height: 16px; color: var(--grey); }
+
+.map { margin: 0; }
+.map-holder { width: 100%; max-width: 240px; }
+.map-drawing { display: block; width: 100%; height: auto; }
+.map-drawing path { fill: var(--paper); stroke: var(--grey); stroke-width: 0.6; stroke-linejoin: round; }
+.map-drawing path.shaded { fill: #e2c4b4; }
+.map-dot { fill: var(--ink); stroke: var(--paper); stroke-width: 1.2; }
+.map-caption { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.map-line { display: block; }
+.map-licence { margin: 4px 0 0; font-size: 13px; line-height: 16px; color: var(--grey); }
+
+.examples, .sources { margin: 0; padding: 0; list-style: none; }
+.sources { counter-reset: bron; }
+.examples li + li, .sources li + li { border-top: 1px solid var(--rule); }
+.example, .source {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--row);
+  padding: 4px 0;
+  text-decoration: none;
+}
+.sources li { counter-increment: bron; display: grid; grid-template-columns: 28px minmax(0, 1fr); }
+.sources li::before { content: counter(bron) "."; padding-top: 4px; color: var(--grey); }
+a.example:hover .example-name, a.source:hover .source-title { text-decoration: underline; }
+.example-name, .source-title { display: block; }
+
+/* Laptop, 1100 px and more: three columns that do not scroll as a page;
+   the catalog and the background scroll inside their columns. */
+@media (min-width: 1100px) {
+  :root {
+    --catalog: clamp(300px, 22vw, 360px);
+    --info: clamp(340px, 26vw, 440px);
+  }
+  body { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+  .page-header { flex: none; min-height: 48px; }
+  .app {
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: var(--catalog) minmax(0, 1fr) var(--info);
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "catalog view info";
+  }
+  .catalog { grid-area: catalog; min-height: 0; overflow-y: auto; box-shadow: inset -1px 0 0 var(--rule); }
+  .view { grid-area: view; }
+  .info { grid-area: info; min-height: 0; overflow-y: auto; box-shadow: inset 1px 0 0 var(--rule); }
+}
+
+/* Between 760 and 1099 px: the catalog beside the view, the background under it. */
+@media (min-width: 760px) and (max-width: 1099px) {
+  .app {
+    grid-template-columns: var(--catalog) minmax(0, 1fr);
+    grid-template-areas: "catalog view" "catalog info";
+    grid-template-rows: auto 1fr;
+  }
+  .catalog { grid-area: catalog; box-shadow: inset -1px 0 0 var(--rule); }
+  .view { grid-area: view; }
+  .info { grid-area: info; }
+  .view-stage { flex: none; aspect-ratio: 4 / 3; max-height: 64svh; }
+}
+
+/* Phone, under 760 px: one column, the view first, then the catalog. */
+@media (max-width: 759px) {
+  .app { grid-template-columns: minmax(0, 1fr); grid-template-areas: "view" "catalog" "info"; }
+  .view { grid-area: view; }
+  .view-stage { flex: none; aspect-ratio: 4 / 3; max-height: 56svh; }
+  .catalog { grid-area: catalog; border-bottom: 1px solid var(--rule); }
+  .info { grid-area: info; }
+}
