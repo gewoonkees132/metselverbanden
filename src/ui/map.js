@@ -11,8 +11,8 @@ export function createMap({ texts }) {
   const figure = el('figure', { class: 'map' });
   const holder = el('div', { class: 'map-holder' });
   const caption = el('figcaption', { class: 'map-caption' });
-  const licence = el('p', { class: 'map-licence' }, texts.licence);
-  figure.append(holder, caption, licence);
+  const licence = el('span', { class: 'map-line map-licence' }, texts.licence);
+  figure.append(caption, holder);
   let drawing = null;
   let dots = null;
   let wanted = null;
@@ -31,6 +31,10 @@ export function createMap({ texts }) {
       drawing.setAttribute('role', 'img');
       drawing.removeAttribute('width');
       drawing.removeAttribute('height');
+      // A hatch for the shaded provinces: lines in the grey ink, which stand
+      // out against the paper, as the caption's word "gearceerd" says.
+      drawing.prepend(svg('defs', {}, svg('pattern', { id: 'arcering', width: 4, height: 4, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' },
+        svg('rect', { width: 4, height: 4, fill: '#f6ece6' }), svg('line', { x1: 0, y1: 0, x2: 0, y2: 4, stroke: '#685f56', 'stroke-width': 1.4 }))));
       dots = svg('g', { class: 'map-dots' });
       drawing.append(dots);
       holder.append(drawing);
@@ -49,11 +53,9 @@ export function createMap({ texts }) {
 
   function show(bond) {
     wanted = bond;
-    const lines = [];
-    lines.push(!bond.map.periodOnly ? texts.shaded : bond.periodKnown === false ? texts.noRegion : texts.periodOnly);
-    if (bond.map.note) lines.push(bond.map.note.text);
-    lines.push(bond.map.examples.length ? texts.dots : texts.noDots);
-    caption.replaceChildren(...lines.map((line) => el('span', { class: 'map-line' }, line)));
+    const names = bond.map.provinces.map((p) => p.name);
+    const lines = [names.length ? texts.shadedNames(names) : bond.fields?.region && !bond.fields.region.gap ? texts.regionWords : texts.noRegion, bond.map.examples.length ? texts.dots : texts.noDots];
+    caption.replaceChildren(el('span', { class: 'map-title' }, texts.title), ...lines.map((line) => el('span', { class: 'map-line' }, line)), licence);
     figure.dataset.verband = bond.id;
     if (!ready) return;
     const shaded = new Set(bond.map.provinces.map((p) => p.id));
@@ -62,7 +64,7 @@ export function createMap({ texts }) {
     }
     dots.replaceChildren(...bond.map.examples.map((e) => {
       const [x, y] = project(e.lon, e.lat);
-      return svg('circle', { class: 'map-dot', cx: x, cy: y, r: 4 }, svg('title', {}, `${e.name}, ${e.place}`));
+      return svg('circle', { class: 'map-dot', cx: x, cy: y, r: 4.5 }, svg('title', {}, `${e.name}, ${e.place}`));
     }));
     drawing.setAttribute('aria-label', describe(bond));
     drawing.dataset.shaded = [...shaded].sort().join(' ');

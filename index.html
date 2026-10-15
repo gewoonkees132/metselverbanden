@@ -25,6 +25,12 @@
   <link rel="modulepreload" href="src/main.js">
   <link rel="modulepreload" href="src/texts.js">
   <link rel="modulepreload" href="src/data/verbanden.js">
+  <link rel="modulepreload" href="src/data/voorbeelden.js">
+  <link rel="modulepreload" href="src/data/begrippen.js">
+  <link rel="modulepreload" href="src/key.js">
+  <link rel="modulepreload" href="src/terms.js">
+  <link rel="modulepreload" href="src/drawing.js">
+  <link rel="modulepreload" href="src/ui/tools.js">
   <link rel="modulepreload" href="src/bricks.js">
   <link rel="modulepreload" href="src/state.js">
   <link rel="modulepreload" href="src/kaart.js">
@@ -32,6 +38,7 @@
   <link rel="modulepreload" href="src/ui/info.js">
   <link rel="modulepreload" href="src/ui/map.js">
   <link rel="modulepreload" href="src/ui/dom.js">
+  <link rel="modulepreload" href="src/ui/edge.js">
   <link rel="modulepreload" href="src/view3d.js">
   <link rel="modulepreload" href="src/palette.js">
   <link rel="modulepreload" href="src/colour.js">
@@ -56,13 +63,17 @@
 </head>
 <body>
   <p class="no-modules" id="no-modules">Deze catalogus heeft een recente browser nodig, met JavaScript aan.</p>
+  <a class="skip" href="#info">Naar de uitleg</a>
   <header class="page-header">
-    <h1>Nederlandse metselverbanden</h1>
-    <p class="purpose">Een catalogus van traditionele metselverbanden, met bronnen.</p>
+    <div class="page-title">
+      <h1>Nederlandse metselverbanden</h1>
+      <p class="purpose">Een naslagwerk van traditionele metselverbanden, met bronnen. Een metselverband is de manier waarop de stenen in een muur liggen, zo dat de stootvoegen van opvolgende lagen niet boven elkaar staan.</p>
+    </div>
+    <nav class="tools" id="tools" aria-label="Hulpmiddelen"></nav>
   </header>
   <main class="app">
     <section class="catalog" id="catalog" aria-label="Catalogus"></section>
-    <section class="view" id="view" aria-label="Voorbeeldmuur in 3D"></section>
+    <section class="view" id="view" aria-label="Voorbeeldmuur"></section>
     <section class="info" id="info" aria-label="Achtergrond"></section>
   </main>
 </body>

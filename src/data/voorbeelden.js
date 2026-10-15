@@ -1,5 +1,6 @@
 // Example buildings per bond: rijksmonumenten whose description in the
-// Rijksmonumentenregister names the bond. Opened on 2026-10-10: the
+// Rijksmonumentenregister names the bond, or writes its rule out. Opened
+// on 2026-10-10, and three more on 2026-10-15: the
 // descriptions, construction dates and point geometries through the RCE's linked data (SPARQL
 // endpoint of dataset rce/cho), and each register page by its address, on
 // which the sentence quoted was found. The coordinates are the RCE's point
@@ -77,6 +78,8 @@ export const EXAMPLES = {
       claim: { ...register, text: 'Rijksmonument 511285: "Omschrijving Het landhuis op samengestelde, geknikte plattegrond is boven een plint van klinkers opgetrokken uit rode handvormbakstenen van kloostermoppenformaat, gemetseld in wild verband."' } },
     { name: 'W.A. Scholtenstraat 1', place: 'Groningen', built: '1923', province: 'groningen', lon: 6.56876, lat: 53.22218, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/486679',
       claim: { ...register, text: 'Rijksmonument 486679: "De trap en de gevel van de begane grond zijn opgetrokken uit een bijzonder onregelmatig gevormde gesinterde mondsteen en zijn gemetseld in wildverband."' } },
+    { name: 'De Kaatse Hoeve 2', place: 'Gemonde', built: '1700-1799', province: 'noord-brabant', lon: 5.36472, lat: 51.62711, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/526616',
+      claim: { ...register, text: 'Rijksmonument 526616: "De voorgevel is opgetrokken uit oranje kloostermoppen in wild verband met koppen en drieklezoren (koppenmaat 13 x 6,5 cm)."' } },
   ],
   'halfsteensverband': [
     { name: 'Burelhul 1', place: 'Radio Kootwijk', built: '1929', province: 'gelderland', lon: 5.84246, lat: 52.16981, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/528726',
@@ -103,10 +106,14 @@ export const EXAMPLES = {
       claim: { ...register, text: 'Rijksmonument 515426: "Omschrijving Twee bouwlagen hoge VILLA met aangebouwde GARAGE, opgetrokken in een rode baksteen met diepe voeg in klezoorverband, op een trasraam van gesinterde klinkers afgezet met een rollaag van rode steen."' } },
     { name: 'Bij Plantage Kerklaan 36', place: 'Amsterdam', built: '1910-1930', province: 'noord-holland', lon: 4.91239, lat: 52.36677, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/518293',
       claim: { ...register, text: 'Rijksmonument 518293: "Gevels op witgepleisterde plint en opgebouwd uit baksteen in klezoorverband."' } },
+    { name: 'BY Nassaulaan 2', place: 'Alkmaar', built: '1909', province: 'noord-holland', lon: 4.74040, lat: 52.63117, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/524890',
+      claim: { ...register, text: 'Rijksmonument 524890: "Omschrijving ERFSCHEIDING bestaande uit vierkante pijlers van rode machinale baksteen waalformaat waartussen circa 0,70 m hoge muurdelen opgetrokken in dito baksteen in klezoorverband boven een basis in Vlaams verband."' } },
   ],
   'engels-verband': [
     { name: 'Sint Odradastraat 61', place: 'Alem', built: '1930-1935', province: 'gelderland', lon: 5.35836, lat: 51.78284, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/523788',
       claim: { ...register, text: 'Rijksmonument 523788: "Het gebouw is opgetrokken in gele baksteen, gemetseld in Engels verband."' } },
+    { name: 'Bij Krommenhoek 13', place: "'s-Hertogenbosch", built: '1940', province: 'noord-brabant', lon: 5.35072, lat: 51.75126, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/522437',
+      claim: { ...register, text: 'Rijksmonument 522437: "De muren zijn opgemetseld in een kettingverband van drie strekken en een kop."' } },
   ],
   'noords-verband': [
     { name: 'Raadhuisplein 1', place: 'Zwijndrecht', built: '1932', province: 'zuid-holland', lon: 4.64818, lat: 51.81736, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/514920',
@@ -115,7 +122,7 @@ export const EXAMPLES = {
       claim: { ...register, text: 'Rijksmonument 518703: "Het pand is in schoonmetselwerk in Noors verband opgetrokken."' } },
     { name: 'Prins Bernhardstraat 4', place: 'Silvolde', built: '1931', province: 'gelderland', lon: 6.38150, lat: 51.91074, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/515474',
       claim: { ...register, text: 'Rijksmonument 515474: "Omschrijving De in noors verband gemetselde bakstenen kerk is opgetrokken op samengestelde plattegrond."' } },
-    { name: 'Crackstraat 11', place: 'Heerenveen', built: '1934-1935', province: 'fryslan', lon: 5.92094, lat: 52.96107, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/510454',
+    { name: 'Crackstraat 11', place: 'Heerenveen', built: '1932-1933', province: 'fryslan', lon: 5.92094, lat: 52.96107, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/510454',
       claim: { ...register, text: 'Rijksmonument 510454: "Het opgaand muurwerk van de kerk bestaat uit bruine bezande baksteen in Noors verband gemetseld op een klinker trasraam."' } },
     { name: 'Bij Duin- en Kruidbergerweg 2', place: 'Driehuis', built: '1925-1926', province: 'noord-holland', lon: 4.63103, lat: 52.44776, url: 'https://monumentenregister.cultureelerfgoed.nl/monumenten/520669',
       claim: { ...register, text: 'Rijksmonument 520669: "Het gehele columbarium is opgetrokken uit gele machinale waalsteen in Noords verband met terugliggende voeg, terwijl de toren bekleed is met zwarte en witte tegels."' } },

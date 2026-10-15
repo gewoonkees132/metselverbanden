@@ -14,29 +14,25 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { el } from './ui/dom.js';
 import { PALETTE } from './palette.js';
 import { VIEWS } from './state.js';
+import { TONES } from './drawing.js';
 import {
   SUN, SKY, SKY_COLOUR, BOUNCE, EXPOSURE, SHADOW_MAP, SHADOW_SOFT,
   AO_RADIUS, AO_THICKNESS, AO_SCALE, airFor, sunDirection, shadowFrame,
 } from './light.js';
 
 const BACKGROUND = PALETTE.view;
-const GROUND = '#ece7df'; // a light paving, placeholder
+const GROUND = '#e4ddd2'; // a light paving, a shade under the air, placeholder
 const MORTAR = '#cdc6ba'; // a lime mortar, placeholder
-const RECESS = 0.004; // m: how far the mortar lies behind the brick faces
+const RECESS = 0.004; // m: how far the mortar lies behind the brick faces, by default
+const SHADOW = 0.35; // how dark the cast shadow is, from 0 to 1
 const EDGE = 0.0025; // m: the radius of a brick's softened arrises
 const ROUGHNESS = 0.88;
 // Brick tones for the plain view, picked per brick by a fixed hash, so a
 // wall looks the same on every load. Placeholders: a red Waal brick.
 const BRICK_TONES = ['#9b4a33', '#a85738', '#8e452f', '#aa5f42', '#95503a', '#a24f36'];
-// The colours of the pieces when they are told apart. Placeholders, apart
-// in hue and lightness so they read under the sun and in the shade.
-export const KIND_COLOURS = Object.freeze({
-  strek: '#4d78a8',
-  kop: '#d4a72c',
-  klezoor: '#b8432e',
-  drieklezoor: '#7d4f9e',
-  halve: '#3b8a72',
-});
+// The colours of the pieces when they are told apart: the elevation's,
+// so the page has one colour code for the kinds.
+export const KIND_COLOURS = TONES;
 const REST = 200; // ms without a change before the ambient occlusion is drawn
 const ORBIT_STEP = (8 * Math.PI) / 180; // an arrow key turns the view this far
 const ZOOM_STEP = 1.15;
@@ -57,21 +53,21 @@ function webgl2(canvas) {
 
 // Without WebGL the zone says in one line why it is empty; the rest of the
 // page works as before.
-function emptyView(root, texts) {
+function emptyView(root, texts, captionNode) {
   root.classList.add('no-webgl');
-  root.replaceChildren(el('p', { class: 'view-empty', role: 'status' }, texts.noWebgl));
+  root.replaceChildren(captionNode ?? '', el('p', { class: 'view-empty', role: 'status' }, texts.noWebgl));
   const nothing = () => {};
-  return { setWall: nothing, setView: nothing, setColours: nothing };
+  return { setWall: nothing, setView: nothing, setColours: nothing, setLabel: nothing, setJoint: nothing, turn: nothing, zoom: nothing };
 }
 
 export function createView3d(root, options) {
   const canvas = document.createElement('canvas');
   const context = webgl2(canvas);
-  if (!context) return emptyView(root, options.texts);
+  if (!context) return emptyView(root, options.texts, options.captionNode);
   try {
     return buildView(root, canvas, context, options);
   } catch {
-    return emptyView(root, options.texts);
+    return emptyView(root, options.texts, options.captionNode);
   }
 }
 
@@ -84,12 +80,14 @@ function hash(a, b, c) {
   return (h >>> 0) / 4294967296;
 }
 
-function buildView(root, canvas, context, { texts, controlsNode }) {
+function buildView(root, canvas, context, { texts, controlsNode, captionNode }) {
   const stage = el('div', { class: 'view-stage' });
-  const hint = el('p', { class: 'view-hint' }, texts.hint);
+  const hint = el('p', { class: 'view-hint', id: 'muur-uitleg' },
+    el('span', { class: 'hint-mouse' }, texts.hint), el('span', { class: 'hint-touch' }, texts.hintTouch));
   canvas.setAttribute('tabindex', '0');
   canvas.setAttribute('role', 'img');
-  stage.append(canvas, hint);
+  canvas.setAttribute('aria-describedby', 'muur-uitleg');
+  stage.append(canvas, captionNode ?? '', hint);
   root.append(stage, controlsNode);
 
   const renderer = new THREE.WebGLRenderer({ canvas, context, antialias: true });
@@ -104,15 +102,19 @@ function buildView(root, canvas, context, { texts, controlsNode }) {
   scene.fog = new THREE.Fog(BACKGROUND, 8, 30);
   const camera = new THREE.PerspectiveCamera(40, 1, 0.02, 200);
   const controls = new OrbitControls(camera, canvas);
+  // OrbitControls claims every touch (touch-action: none, inline). The
+  // style sheet decides instead: where the page scrolls, a vertical swipe
+  // scrolls it and a sideways drag turns the wall.
+  canvas.style.removeProperty('touch-action');
   controls.minDistance = 0.4;
-  controls.maxDistance = 12;
+  controls.maxDistance = 40;
   controls.maxPolarAngle = Math.PI / 2 - 0.02; // never below the ground
   controls.screenSpacePanning = true;
 
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(80, 80), new THREE.MeshStandardMaterial({ color: GROUND, roughness: 1 }));
   ground.rotation.x = -Math.PI / 2;
   ground.position.y = -0.0005;
-  ground.receiveShadow = true;
+  ground.receiveShadow = false;
   ground.renderOrder = 2;
   scene.add(ground);
 
@@ -121,6 +123,7 @@ function buildView(root, canvas, context, { texts, controlsNode }) {
   sun.castShadow = true;
   sun.shadow.mapSize.set(SHADOW_MAP, SHADOW_MAP);
   sun.shadow.radius = SHADOW_SOFT;
+  sun.shadow.intensity = SHADOW;
   scene.add(sun, sun.target);
 
   const wallGroup = new THREE.Group();
@@ -227,6 +230,7 @@ function buildView(root, canvas, context, { texts, controlsNode }) {
   }
 
   // The mortar: one box per leg, set back behind every face but the joints'.
+  let recess = RECESS;
   function addMortar(w) {
     const t = w.thickness;
     const top = w.courses * (w.format.height + w.format.bed) - w.format.bed;
@@ -235,12 +239,12 @@ function buildView(root, canvas, context, { texts, controlsNode }) {
       { x0: 0, x1: t, y0: t, y1: w.legs.B },
     ];
     for (const r of rects) {
-      const lx = (r.x1 - r.x0) / 1000 - 2 * RECESS;
-      const ly = (r.y1 - r.y0) / 1000 - (r.y0 === 0 ? 2 * RECESS : RECESS);
-      const lz = top / 1000 - RECESS;
+      const lx = (r.x1 - r.x0) / 1000 - 2 * recess;
+      const ly = (r.y1 - r.y0) / 1000 - (r.y0 === 0 ? 2 * recess : recess);
+      const lz = top / 1000 - recess;
       const mortar = new THREE.Mesh(new THREE.BoxGeometry(lx, lz, ly), mortarMaterial);
-      const [cx, cy, cz] = toScene((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2 + (r.y0 === 0 ? 0 : -RECESS * 500), top / 2);
-      mortar.position.set(cx, cy - RECESS / 2, cz);
+      const [cx, cy, cz] = toScene((r.x0 + r.x1) / 2, (r.y0 + r.y1) / 2 + (r.y0 === 0 ? 0 : -recess * 500), top / 2);
+      mortar.position.set(cx, cy - recess / 2, cz);
       mortar.castShadow = true;
       mortar.receiveShadow = true;
       wallGroup.add(mortar);
@@ -286,8 +290,11 @@ function buildView(root, canvas, context, { texts, controlsNode }) {
 
   function placeSun() {
     const centre = box.getCenter(new THREE.Vector3());
-    // In plan the front faces -y and the free end of leg A lies along +x.
-    const [dx, dy, dz] = sunDirection([0, -1, 0], [1, 0, 0]);
+    // In plan the front faces -y; the sun comes round from the front
+    // toward -x, the side the corner view looks from, so the cast shadow
+    // falls behind the wall and inside its corner.
+    // From above the sun stands high, so the top course is lit.
+    const [dx, dy, dz] = view === 'boven' ? sunDirection([0, -1, 0], [-1, 0, 0], undefined, (62 * Math.PI) / 180) : sunDirection([0, -1, 0], [-1, 0, 0]);
     sun.target.position.copy(centre);
     sun.position.copy(centre).add(new THREE.Vector3(...toScene(dx * 10000, dy * 10000, dz * 10000)));
     const points = [];
@@ -307,25 +314,54 @@ function buildView(root, canvas, context, { texts, controlsNode }) {
     if (!box) return;
     const centre = box.getCenter(new THREE.Vector3());
     const size = box.getSize(new THREE.Vector3());
+    // From above a long lens from far off, so the top reads as a plan and
+    // the faces below it hardly show; the other views keep the usual lens.
+    camera.fov = view === 'boven' ? 12 : 40;
+    camera.updateProjectionMatrix();
     const aspect = width / height;
     const vfov = (camera.fov * Math.PI) / 180;
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * aspect);
-    const fit = (w, h) => 1.12 * Math.max(h / 2 / Math.tan(vfov / 2), w / 2 / Math.tan(hfov / 2));
+    const fit = (w, h) => 1.3 * Math.max(h / 2 / Math.tan(vfov / 2), w / 2 / Math.tan(hfov / 2));
+    // Every corner of the wall's box inside the frame, with a margin, and
+    // above the hint line at the foot of the stage: the distance along the
+    // view's direction is scaled until the farthest corner sits on the margin.
+    const corners = [];
+    for (const x of [box.min.x, box.max.x]) for (const y of [box.min.y, box.max.y]) for (const z of [box.min.z, box.max.z]) corners.push(new THREE.Vector3(x, y, z));
+    const foot = Math.min(0.5, (2 * (hint.offsetHeight + 16)) / Math.max(1, height));
+    const framed = (dir, target, start) => {
+      let d = start;
+      for (let i = 0; i < 8; i++) {
+        camera.position.copy(target).addScaledVector(dir, d);
+        camera.lookAt(target);
+        camera.updateMatrixWorld();
+        let worst = 0;
+        for (const c of corners) {
+          const q = c.clone().project(camera);
+          worst = Math.max(worst, Math.abs(q.x) / 0.88, q.y > 0 ? q.y / 0.88 : -q.y / (0.88 - foot));
+        }
+        d *= Math.min(2, Math.max(0.5, worst));
+      }
+      return target.clone().addScaledVector(dir, d);
+    };
     let eye;
     let target = centre.clone();
     if (view === 'voor') {
       const front = box.max.z; // the front face of leg A
       target = new THREE.Vector3(centre.x, centre.y, front);
-      eye = target.clone().add(new THREE.Vector3(0, size.y * 0.15, fit(size.x, size.y) + 0.02));
+      eye = framed(new THREE.Vector3(0, size.y * 0.15, fit(size.x, size.y) + 0.02).normalize(), target, fit(size.x, size.y));
     } else if (view === 'boven') {
-      eye = centre.clone().add(new THREE.Vector3(0, fit(size.x, size.z) + size.y, 0.001));
+      eye = framed(new THREE.Vector3(0, 1, 0.001).normalize(), centre, fit(size.x, size.z) + size.y);
     } else {
       const reach = fit(Math.hypot(size.x, size.z) * 0.85, size.y * 1.6);
       const dir = new THREE.Vector3(-0.62, 0.48, 0.62).normalize();
       target = new THREE.Vector3(box.min.x + size.x * 0.32, centre.y * 0.8, box.max.z - size.z * 0.3);
-      eye = target.clone().add(dir.multiplyScalar(reach));
+      eye = framed(dir, target, reach);
     }
     camera.position.copy(eye);
+    // The fog starts a little behind the wall, however far the camera stands.
+    const reachOf = eye.distanceTo(target);
+    scene.fog.near = reachOf + 5;
+    scene.fog.far = reachOf + 25;
     controls.target.copy(target);
     controls.update();
     requestDraw();
@@ -334,6 +370,10 @@ function buildView(root, canvas, context, { texts, controlsNode }) {
   function setView(next) {
     view = VIEWS.includes(next) ? next : 'hoek';
     stir();
+    if (box) {
+      placeSun();
+      renderer.shadowMap.needsUpdate = true;
+    }
     placeCamera();
   }
 
@@ -359,30 +399,31 @@ function buildView(root, canvas, context, { texts, controlsNode }) {
   // minus bring it nearer and farther, Home goes back to the preset view.
   const spherical = new THREE.Spherical();
   const offset = new THREE.Vector3();
-  canvas.addEventListener('keydown', (event) => {
-    if (event.altKey || event.ctrlKey || event.metaKey) return;
+  function move({ theta = 0, phi = 0, zoom = 0 }) {
     offset.copy(camera.position).sub(controls.target);
     spherical.setFromVector3(offset);
-    let handled = true;
-    if (event.key === 'ArrowLeft') spherical.theta -= ORBIT_STEP;
-    else if (event.key === 'ArrowRight') spherical.theta += ORBIT_STEP;
-    else if (event.key === 'ArrowUp') spherical.phi -= ORBIT_STEP;
-    else if (event.key === 'ArrowDown') spherical.phi += ORBIT_STEP;
-    else if (event.key === '+' || event.key === '=') spherical.radius /= ZOOM_STEP;
-    else if (event.key === '-' || event.key === '_') spherical.radius *= ZOOM_STEP;
-    else if (event.key === 'Home') {
-      event.preventDefault();
-      setView(view);
-      return;
-    } else handled = false;
-    if (!handled) return;
-    event.preventDefault();
-    spherical.phi = Math.min(controls.maxPolarAngle, Math.max(0.01, spherical.phi));
-    spherical.radius = Math.min(controls.maxDistance, Math.max(controls.minDistance, spherical.radius));
+    spherical.theta += theta;
+    spherical.phi = Math.min(controls.maxPolarAngle, Math.max(0.01, spherical.phi + phi));
+    spherical.radius = Math.min(controls.maxDistance, Math.max(controls.minDistance, spherical.radius * ZOOM_STEP ** -zoom));
     offset.setFromSpherical(spherical);
     camera.position.copy(controls.target).add(offset);
     controls.update();
     stir();
+  }
+  canvas.addEventListener('keydown', (event) => {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const steps = {
+      ArrowLeft: { theta: -ORBIT_STEP }, ArrowRight: { theta: ORBIT_STEP }, ArrowUp: { phi: -ORBIT_STEP }, ArrowDown: { phi: ORBIT_STEP },
+      '+': { zoom: 1 }, '=': { zoom: 1 }, '-': { zoom: -1 }, _: { zoom: -1 },
+    };
+    if (event.key === 'Home') {
+      event.preventDefault();
+      setView(view);
+      return;
+    }
+    if (!steps[event.key]) return;
+    event.preventDefault();
+    move(steps[event.key]);
   });
 
   canvas.addEventListener('webglcontextrestored', () => {
@@ -406,5 +447,17 @@ function buildView(root, canvas, context, { texts, controlsNode }) {
   new ResizeObserver(resize).observe(stage);
   resize();
 
-  return { setWall, setView, setColours, setLabel };
+  // The joint: how far the mortar lies behind the faces, in mm (0.5 for
+  // a flush joint, so the two faces do not fight).
+  function setJoint(mm) {
+    const next = Math.max(0.5, mm) / 1000;
+    if (Math.abs(next - recess) < 1e-6) return;
+    recess = next;
+    if (wall) setWall(wall);
+  }
+
+  const turn = (dir) => move({ theta: dir * ORBIT_STEP * 2 });
+  const zoom = (dir) => move({ zoom: dir });
+
+  return { setWall, setView, setColours, setLabel, setJoint, turn, zoom };
 }
